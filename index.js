@@ -25,9 +25,14 @@ async function run() {
 
 		app.post("/all-users", async (req, res) => {
 			const users = req.body;
-			console.log(users);
-			
+
 			const result = await UserCollection.insertOne(users);
+			res.send(result);
+		});
+		app.get("/all-users/:email", async (req, res) => {
+			const email = req.params.email;
+			const query = { email: email };
+			const result = await UserCollection.find(query).toArray();
 			res.send(result);
 		});
 

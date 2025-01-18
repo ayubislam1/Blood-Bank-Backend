@@ -1,5 +1,5 @@
 require("dotenv").config();
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const express = require("express");
 const app = express();
 const port = process.env.PORT || 7000;
@@ -22,6 +22,9 @@ async function run() {
 	try {
 		await client.connect();
 		const UserCollection = client.db("Blood_Donation").collection("all-users");
+		const UserDonation = client
+			.db("Blood_Donation")
+			.collection("users-donation");
 
 		app.post("/all-users", async (req, res) => {
 			const users = req.body;
@@ -29,10 +32,65 @@ async function run() {
 			const result = await UserCollection.insertOne(users);
 			res.send(result);
 		});
+		app.post("/users-donation", async (req, res) => {
+			const users = req.body;
+
+			const result = await UserDonation.insertOne(users);
+			res.send(result);
+		});
 		app.get("/all-users/:email", async (req, res) => {
 			const email = req.params.email;
 			const query = { email: email };
 			const result = await UserCollection.find(query).toArray();
+			res.send(result);
+		});
+		app.get("/all-users", async (req, res) => {
+			const result = await UserCollection.find().toArray();
+			res.send(result);
+		});
+		app.get("/users-donation", async (req, res) => {
+			const result = await UserDonation.find().toArray();
+			res.send(result);
+		});
+		app.get("/users-donation/:id", async (req, res) => {
+			const id = req.params.id;
+
+			const filter = { _id: new ObjectId(id) };
+			const result = await UserDonation.find(filter).toArray();
+			res.send(result);
+		});
+
+		app.patch("/all-users/:id", async (req, res) => {
+			const user = req.body;
+			const id = req.params.id;
+			const filter = { _id: new ObjectId(id) };
+			const updateDoc = {
+				$set: {
+					name: user.name,
+					email: user.email,
+					district: user.district,
+					upazila: user.upazila,
+					bloodGroup: user.bloodGroup,
+				},
+			};
+
+			const result = await UserCollection.updateOne(filter, updateDoc);
+			res.send(result);
+		});
+
+		app.patch("/users-donation/:id", async (req, res) => {
+			const user = req.body;
+			const id = req.params.id;
+			const filter = { _id: new ObjectId(id) };
+			const updateDoc = {
+				$set: {
+					status: "inprogress",
+					donorName: user.displayName,
+					donorEmail: user.email,
+				},
+			};
+
+			const result = await UserDonation.updateOne(filter, updateDoc);
 			res.send(result);
 		});
 

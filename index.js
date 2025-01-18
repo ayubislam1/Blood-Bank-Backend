@@ -4,6 +4,7 @@ const express = require("express");
 const app = express();
 const port = process.env.PORT || 7000;
 const cors = require("cors");
+const e = require("express");
 
 app.use(cors());
 app.use(express.json());
@@ -125,6 +126,12 @@ async function run() {
 
 			const result = await UserDonation.updateOne(filter, updateDoc);
 			res.send(result);
+		});
+
+		app.get("/stats-item", async (req, res) => {
+			const users = await UserCollection.estimatedDocumentCount();
+			const donations = await UserDonation.estimatedDocumentCount();
+            res.send({users,donations})
 		});
 
 		await client.db("admin").command({ ping: 1 });

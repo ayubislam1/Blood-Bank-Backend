@@ -59,7 +59,21 @@ async function run() {
 			const result = await UserDonation.find(filter).toArray();
 			res.send(result);
 		});
+		app.get("/users-donation/:email", async (req, res) => {
+			const email = req.params.email;
 
+			const query = { email: email };
+			console.log(email, query);
+			const result = await UserDonation.find(query).toArray();
+			res.send(result);
+		});
+
+		app.delete("/users-donation/:id", async (req, res) => {
+			const id = req.params.id;
+			const query = { _id: new ObjectId(id) };
+			const result = await UserDonation.deleteOne(query);
+			res.send(result);
+		});
 		app.patch("/all-users/:id", async (req, res) => {
 			const user = req.body;
 			const id = req.params.id;
@@ -87,6 +101,25 @@ async function run() {
 					status: "inprogress",
 					donorName: user.displayName,
 					donorEmail: user.email,
+				},
+			};
+
+			const result = await UserDonation.updateOne(filter, updateDoc);
+			res.send(result);
+		});
+		app.put("/users-donation/:id", async (req, res) => {
+			const user = req.body;
+			const id = req.params.id;
+			const filter = { _id: new ObjectId(id) };
+			const updateDoc = {
+				$set: {
+					name: user.recipientName,
+					email: user.email,
+					district: user.district,
+					upazila: user.upazila,
+					bloodGroup: user.bloodGroup,
+					donationDate: user.donationDate,
+					donationTime: user.donationTime,
 				},
 			};
 

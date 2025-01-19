@@ -206,6 +206,13 @@ async function run() {
 			const result = await Blogs.updateOne(query, updateDoc);
 			res.send(result);
 		});
+        app.delete("/blogs/:id", async (req, res) => {
+			const id = req.params.id;
+			const query = { _id: new ObjectId(id) };
+			
+			const result = await Blogs.deleteOne(query);
+			res.send(result);
+		});
 	} finally {
 		//   // Ensures that the client will close when you finish/error
 		//   await client.close();

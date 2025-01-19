@@ -49,6 +49,37 @@ async function run() {
 			const result = await UserCollection.find().toArray();
 			res.send(result);
 		});
+		app.put("/all-users/:id", async (req, res) => {
+			const user = req.body;
+
+			const id = req.params.id;
+
+			const filter = { _id: new ObjectId(id) };
+
+			const updateDoc = {
+				$set: {
+					role: user.role,
+				},
+			};
+			const result = await UserCollection.updateOne(filter, updateDoc);
+			res.send(result);
+		});
+
+		app.patch("/all-users/:id/status", async (req, res) => {
+			const user = req.body;
+
+			const id = req.params.id;
+
+			const filter = { _id: new ObjectId(id) };
+			const updateDoc = {
+				$set: {
+					status: user.status,
+				},
+			};
+			const result = await UserCollection.updateOne(filter, updateDoc);
+			res.send(result);
+		});
+
 		app.get("/users-donation", async (req, res) => {
 			const result = await UserDonation.find().toArray();
 			res.send(result);
@@ -64,7 +95,7 @@ async function run() {
 			const email = req.params.email;
 
 			const query = { email: email };
-			console.log(email, query);
+
 			const result = await UserDonation.find(query).toArray();
 			res.send(result);
 		});
@@ -130,8 +161,8 @@ async function run() {
 
 		app.get("/stats-item", async (req, res) => {
 			const users = await UserCollection.estimatedDocumentCount();
-			const donations = await UserDonation.estimatedDocumentCount();
-            res.send({users,donations})
+			const donors = await UserDonation.estimatedDocumentCount();
+			res.send({ users, donors });
 		});
 
 		await client.db("admin").command({ ping: 1 });

@@ -23,6 +23,7 @@ async function run() {
 	try {
 		await client.connect();
 		const UserCollection = client.db("Blood_Donation").collection("all-users");
+		const Blogs = client.db("Blood_Donation").collection("blogs");
 		const UserDonation = client
 			.db("Blood_Donation")
 			.collection("users-donation");
@@ -169,6 +170,42 @@ async function run() {
 		console.log(
 			"Pinged your deployment. You successfully connected to MongoDB!"
 		);
+
+		app.post("/blogs", async (req, res) => {
+			const blogs = req.body;
+			console.log(blogs);
+			const result = await Blogs.insertOne(blogs);
+
+			res.send(result);
+		});
+
+		app.get("/blogs", async (req, res) => {
+			const result = await Blogs.find().toArray();
+			res.send(result);
+		});
+
+		app.patch("/blogs/:id/publish", async (req, res) => {
+			const id = req.params.id;
+			const query = { _id: new ObjectId(id) };
+			const updateDoc = {
+				$set: {
+					status: "published",
+				},
+			};
+			const result = await Blogs.updateOne(query, updateDoc);
+			res.send(result);
+		});
+		app.patch("/blogs/:id/unpublish", async (req, res) => {
+			const id = req.params.id;
+			const query = { _id: new ObjectId(id) };
+			const updateDoc = {
+				$set: {
+					status: "draft",
+				},
+			};
+			const result = await Blogs.updateOne(query, updateDoc);
+			res.send(result);
+		});
 	} finally {
 		//   // Ensures that the client will close when you finish/error
 		//   await client.close();

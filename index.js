@@ -140,6 +140,19 @@ async function run() {
 			const result = await UserDonation.updateOne(filter, updateDoc);
 			res.send(result);
 		});
+		app.patch("/users-donation/:id/status", async (req, res) => {
+            const user=req.body
+			const id = req.params.id;
+			const filter = { _id: new ObjectId(id) };
+			const updateDoc = {
+				$set: {
+					status: user.status,
+				},
+			};
+
+			const result = await UserDonation.updateOne(filter, updateDoc);
+			res.send(result);
+		});
 		app.put("/users-donation/:id", async (req, res) => {
 			const user = req.body;
 			const id = req.params.id;
@@ -206,10 +219,10 @@ async function run() {
 			const result = await Blogs.updateOne(query, updateDoc);
 			res.send(result);
 		});
-        app.delete("/blogs/:id", async (req, res) => {
+		app.delete("/blogs/:id", async (req, res) => {
 			const id = req.params.id;
 			const query = { _id: new ObjectId(id) };
-			
+
 			const result = await Blogs.deleteOne(query);
 			res.send(result);
 		});

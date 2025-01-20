@@ -3,6 +3,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const express = require("express");
 const app = express();
 const port = process.env.PORT || 7000;
+const stripe = require("stripe")(process.env.Payment_Key);
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
 
@@ -23,6 +24,7 @@ async function run() {
 	try {
 		await client.connect();
 		const UserCollection = client.db("Blood_Donation").collection("all-users");
+		const FundCollection = client.db("Blood_Donation").collection("funds");
 		const Blogs = client.db("Blood_Donation").collection("blogs");
 		const UserDonation = client
 			.db("Blood_Donation")
@@ -302,7 +304,6 @@ async function run() {
 		});
 		app.post("/search-donors", async (req, res) => {
 			const data = req.body;
-			
 
 			const query = {
 				bloodGroup: data.bloodGroup,
@@ -319,6 +320,34 @@ async function run() {
 			const user = req.body;
 			const token = jwt.sign(user, process.env.Access_Key, { expiresIn: "2h" });
 			res.send({ token });
+		});
+		app.post("/create-payment-intent", async (req, res) => {
+			const { price } = req.body;
+			const amount = parseInt(price * 100);
+
+			const paymentIntent = await stripe.paymentIntents.create({
+				amount: amount,
+				currency: "usd",
+				payment_method_types: ["card"],
+			});
+			res.send({
+				clientSecret: paymentIntent.client_secret,
+			});
+		});
+
+		app.post("/payments", async (req, res) => {
+			const payment = req.body;
+
+			const result = await FundCollection.insertOne(payment);
+
+			res.send({ result });
+		});
+
+		app.get("/payments",verifyToken, async (req, res) => {
+			
+			
+			const result = await FundCollection.find().toArray();
+			res.send(result);
 		});
 	} finally {
 		//   // Ensures that the client will close when you finish/error

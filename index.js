@@ -166,20 +166,25 @@ async function run() {
 			const result = await UserDonation.updateOne(filter, updateDoc);
 			res.send(result);
 		});
-		app.patch("/users-donation/:id/status", async (req, res) => {
-			const user = req.body;
-			const id = req.params.id;
-			const filter = { _id: new ObjectId(id) };
-			const updateDoc = {
-				$set: {
-					status: user.status,
-				},
-			};
+		app.patch(
+			"/users-donation/:id/status",
+			verifyToken,
+			verifyAdmin,
+			async (req, res) => {
+				const user = req.body;
+				const id = req.params.id;
+				const filter = { _id: new ObjectId(id) };
+				const updateDoc = {
+					$set: {
+						status: user.status,
+					},
+				};
 
-			const result = await UserDonation.updateOne(filter, updateDoc);
-			res.send(result);
-		});
-		app.put("/users-donation/:id", async (req, res) => {
+				const result = await UserDonation.updateOne(filter, updateDoc);
+				res.send(result);
+			}
+		);
+		app.put("/users-donation/:id", verifyToken, async (req, res) => {
 			const user = req.body;
 			const id = req.params.id;
 			const filter = { _id: new ObjectId(id) };
@@ -199,7 +204,7 @@ async function run() {
 			res.send(result);
 		});
 
-		app.get("/stats-item", async (req, res) => {
+		app.get("/stats-item", verifyToken, async (req, res) => {
 			const users = await UserCollection.estimatedDocumentCount();
 			const donors = await UserDonation.estimatedDocumentCount();
 			res.send({ users, donors });
@@ -294,6 +299,20 @@ async function run() {
 				isDonor = user?.role === "donor";
 			}
 			res.send({ isDonor });
+		});
+		app.post("/search-donors", async (req, res) => {
+			const data = req.body;
+			
+
+			const query = {
+				bloodGroup: data.bloodGroup,
+				district: data.district,
+				upazila: data.upazila,
+			};
+
+			const donor = await UserCollection.find(query).toArray();
+
+			res.send(donor);
 		});
 
 		app.post("/jwt", async (req, res) => {

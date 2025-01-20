@@ -3,8 +3,8 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const express = require("express");
 const app = express();
 const port = process.env.PORT || 7000;
+const jwt = require("jsonwebtoken");
 const cors = require("cors");
-const e = require("express");
 
 app.use(cors());
 app.use(express.json());
@@ -28,6 +28,31 @@ async function run() {
 			.db("Blood_Donation")
 			.collection("users-donation");
 
+		const verifyToken = (req, res, next) => {
+			if (!req.headers.authorization) {
+				return res.status(401).send({ message: "forbidden" });
+			}
+			const token = req.headers.authorization.split(" ")[1];
+			jwt.verify(token, process.env.Access_Key, (err, decoded) => {
+				if (err) {
+					return res.status(401).send({ message: "forbidden" });
+				}
+				req.decoded = decoded;
+				next();
+			});
+		};
+
+		const verifyAdmin = async (req, res, next) => {
+			const email = req.decoded.email;
+			const query = { email: email };
+			const user = await UserCollection.findOne(query);
+			const isAdmin = user?.role === "admin";
+			if (!isAdmin) {
+				res.status(403).send({ message: "forbidden" });
+			}
+			next();
+		};
+
 		app.post("/all-users", async (req, res) => {
 			const users = req.body;
 
@@ -46,7 +71,7 @@ async function run() {
 			const result = await UserCollection.find(query).toArray();
 			res.send(result);
 		});
-		app.get("/all-users", async (req, res) => {
+		app.get("/all-users", verifyToken, verifyAdmin, async (req, res) => {
 			const result = await UserCollection.find().toArray();
 			res.send(result);
 		});
@@ -81,7 +106,7 @@ async function run() {
 			res.send(result);
 		});
 
-		app.get("/users-donation", async (req, res) => {
+		app.get("/users-donation", verifyToken, async (req, res) => {
 			const result = await UserDonation.find().toArray();
 			res.send(result);
 		});
@@ -107,7 +132,7 @@ async function run() {
 			const result = await UserDonation.deleteOne(query);
 			res.send(result);
 		});
-		app.patch("/all-users/:id", async (req, res) => {
+		app.patch("/all-users/:id", verifyToken, async (req, res) => {
 			const user = req.body;
 			const id = req.params.id;
 			const filter = { _id: new ObjectId(id) };
@@ -128,11 +153,12 @@ async function run() {
 		app.patch("/users-donation/:id", async (req, res) => {
 			const user = req.body;
 			const id = req.params.id;
+			console.log(user);
 			const filter = { _id: new ObjectId(id) };
 			const updateDoc = {
 				$set: {
 					status: "inprogress",
-					donorName: user.displayName,
+					donorName: user.name,
 					donorEmail: user.email,
 				},
 			};
@@ -141,7 +167,7 @@ async function run() {
 			res.send(result);
 		});
 		app.patch("/users-donation/:id/status", async (req, res) => {
-            const user=req.body
+			const user = req.body;
 			const id = req.params.id;
 			const filter = { _id: new ObjectId(id) };
 			const updateDoc = {
@@ -197,7 +223,7 @@ async function run() {
 			res.send(result);
 		});
 
-		app.patch("/blogs/:id/publish", async (req, res) => {
+		app.patch("/blogs/:id/publish", verifyToken, async (req, res) => {
 			const id = req.params.id;
 			const query = { _id: new ObjectId(id) };
 			const updateDoc = {
@@ -208,7 +234,7 @@ async function run() {
 			const result = await Blogs.updateOne(query, updateDoc);
 			res.send(result);
 		});
-		app.patch("/blogs/:id/unpublish", async (req, res) => {
+		app.patch("/blogs/:id/unpublish", verifyToken, async (req, res) => {
 			const id = req.params.id;
 			const query = { _id: new ObjectId(id) };
 			const updateDoc = {
@@ -219,12 +245,61 @@ async function run() {
 			const result = await Blogs.updateOne(query, updateDoc);
 			res.send(result);
 		});
-		app.delete("/blogs/:id", async (req, res) => {
+		app.delete("/blogs/:id", verifyToken, verifyAdmin, async (req, res) => {
 			const id = req.params.id;
 			const query = { _id: new ObjectId(id) };
 
 			const result = await Blogs.deleteOne(query);
 			res.send(result);
+		});
+
+		app.get("/all-users/admin/:email", verifyToken, async (req, res) => {
+			const email = req.params.email;
+
+			if (email != req.decoded.email) {
+				return res.status(403).send({ message: "unauthorized Access" });
+			}
+			const query = { email: email };
+			const user = await UserCollection.findOne(query);
+			let isAdmin = false;
+			if (user) {
+				isAdmin = user?.role === "admin";
+			}
+			res.send({ isAdmin });
+		});
+		app.get("/all-users/volunteer/:email", verifyToken, async (req, res) => {
+			const email = req.params.email;
+
+			if (email != req.decoded.email) {
+				return res.status(403).send({ message: "unauthorized Access" });
+			}
+			const query = { email: email };
+			const user = await UserCollection.findOne(query);
+			let isVolunteer = false;
+			if (user) {
+				isVolunteer = user?.role === "volunteer";
+			}
+			res.send({ isVolunteer });
+		});
+		app.get("/all-users/donor/:email", verifyToken, async (req, res) => {
+			const email = req.params.email;
+
+			if (email != req.decoded.email) {
+				return res.status(403).send({ message: "unauthorized Access" });
+			}
+			const query = { email: email };
+			const user = await UserCollection.findOne(query);
+			let isDonor = false;
+			if (user) {
+				isDonor = user?.role === "donor";
+			}
+			res.send({ isDonor });
+		});
+
+		app.post("/jwt", async (req, res) => {
+			const user = req.body;
+			const token = jwt.sign(user, process.env.Access_Key, { expiresIn: "2h" });
+			res.send({ token });
 		});
 	} finally {
 		//   // Ensures that the client will close when you finish/error

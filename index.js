@@ -7,7 +7,7 @@ const stripe = require("stripe")(process.env.Payment_Key);
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
 
-app.use(cors());
+app.use(cors({ origin: ["http://localhost:5173"] }));
 app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ds3da.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -108,7 +108,7 @@ async function run() {
 			res.send(result);
 		});
 
-		app.get("/users-donation", verifyToken, async (req, res) => {
+		app.get("/users-donation", async (req, res) => {
 			const result = await UserDonation.find().toArray();
 			res.send(result);
 		});
@@ -209,7 +209,18 @@ async function run() {
 		app.get("/stats-item", verifyToken, async (req, res) => {
 			const users = await UserCollection.estimatedDocumentCount();
 			const donors = await UserDonation.estimatedDocumentCount();
-			res.send({ users, donors });
+			const result = await FundCollection.aggregate([
+				{
+					$group: {
+						_id: null,
+						totalRevenue: {
+							$sum: "$price",
+						},
+					},
+				},
+			]).toArray();
+			const totalPrice = result.length > 0 ? result[0].totalRevenue : 0;
+			res.send({ users, donors, totalPrice });
 		});
 
 		await client.db("admin").command({ ping: 1 });
@@ -343,9 +354,7 @@ async function run() {
 			res.send({ result });
 		});
 
-		app.get("/payments",verifyToken, async (req, res) => {
-			
-			
+		app.get("/payments", verifyToken, async (req, res) => {
 			const result = await FundCollection.find().toArray();
 			res.send(result);
 		});

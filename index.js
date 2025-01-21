@@ -7,11 +7,18 @@ const stripe = require("stripe")(process.env.Payment_Key);
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
 
-app.use(cors({ origin: ["http://localhost:5173"] }));
+app.use(
+	cors({
+		origin: [
+			"http://localhost:5173",
+			"https://blood-donation-a66b4.web.app",
+			"https://blood-donation-a66b4.firebaseapp.com",
+		],
+	})
+);
 app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ds3da.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
-console.log(process.env.DB_USER);
 
 const client = new MongoClient(uri, {
 	serverApi: {
@@ -22,7 +29,7 @@ const client = new MongoClient(uri, {
 });
 async function run() {
 	try {
-		await client.connect();
+		// await client.connect();
 		const UserCollection = client.db("Blood_Donation").collection("all-users");
 		const FundCollection = client.db("Blood_Donation").collection("funds");
 		const Blogs = client.db("Blood_Donation").collection("blogs");
@@ -170,8 +177,7 @@ async function run() {
 		});
 		app.patch(
 			"/users-donation/:id/status",
-			verifyToken,
-			verifyAdmin,
+
 			async (req, res) => {
 				const user = req.body;
 				const id = req.params.id;
@@ -199,6 +205,7 @@ async function run() {
 					bloodGroup: user.bloodGroup,
 					donationDate: user.donationDate,
 					donationTime: user.donationTime,
+					status: user.status,
 				},
 			};
 
@@ -223,14 +230,14 @@ async function run() {
 			res.send({ users, donors, totalPrice });
 		});
 
-		await client.db("admin").command({ ping: 1 });
-		console.log(
-			"Pinged your deployment. You successfully connected to MongoDB!"
-		);
+		// await client.db("admin").command({ ping: 1 });
+		// console.log(
+		// 	"Pinged your deployment. You successfully connected to MongoDB!"
+		// );
 
 		app.post("/blogs", async (req, res) => {
 			const blogs = req.body;
-			console.log(blogs);
+
 			const result = await Blogs.insertOne(blogs);
 
 			res.send(result);
@@ -241,7 +248,7 @@ async function run() {
 			res.send(result);
 		});
 
-		app.patch("/blogs/:id/publish", verifyToken, async (req, res) => {
+		app.patch("/blogs/:id/publish", async (req, res) => {
 			const id = req.params.id;
 			const query = { _id: new ObjectId(id) };
 			const updateDoc = {
@@ -252,7 +259,7 @@ async function run() {
 			const result = await Blogs.updateOne(query, updateDoc);
 			res.send(result);
 		});
-		app.patch("/blogs/:id/unpublish", verifyToken, async (req, res) => {
+		app.patch("/blogs/:id/unpublish", async (req, res) => {
 			const id = req.params.id;
 			const query = { _id: new ObjectId(id) };
 			const updateDoc = {
@@ -263,7 +270,7 @@ async function run() {
 			const result = await Blogs.updateOne(query, updateDoc);
 			res.send(result);
 		});
-		app.delete("/blogs/:id", verifyToken, verifyAdmin, async (req, res) => {
+		app.delete("/blogs/:id", async (req, res) => {
 			const id = req.params.id;
 			const query = { _id: new ObjectId(id) };
 
